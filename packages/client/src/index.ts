@@ -47,6 +47,7 @@ import type {
   WebhookEventEnvelope,
   WebhookEventName,
 } from '@astroid/types';
+import { createErrorTranslatorMiddleware } from './middleware/error.js';
 
 /** The AI-native namespace: express intents, not low-level transfers. */
 export class AiResource {
@@ -190,6 +191,11 @@ export class Astroid {
     this.analytics = new AnalyticsResource(this.http);
     this.webhooks = new WebhookResource(this.http);
     this.ai = new AiResource(this.http);
+
+    // Structured error translation: map Horizon and API error payloads to typed domain exceptions
+    // (e.g. op_low_reserve → InsufficientFundsError, POLICY_VIOLATION → PolicyViolationError).
+    // Installed by default so consumers get high-fidelity errors without manual middleware wiring.
+    this.use(createErrorTranslatorMiddleware());
 
     this.use(
       createSessionMiddleware(this.sessionManager, async (refreshToken: string) => {
@@ -349,4 +355,16 @@ export {
   ServerError,
   isAstroidError,
 } from '@astroid/errors';
+export {
+  InsufficientFundsError,
+  AstroidPolicyViolationError,
+  AstroidInsufficientFundsError,
+} from '@astroid/errors';
+export {
+  createErrorTranslatorMiddleware,
+  errorTranslatorMiddleware,
+  errorMiddleware,
+  translateErrorBody,
+  detectStellarCode,
+} from './middleware/error.js';
 

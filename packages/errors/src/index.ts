@@ -94,6 +94,15 @@ export class ConflictError extends AstroidError {}
 /** A transaction was blocked because it violates one or more spending policies. */
 export class PolicyViolationError extends AstroidError {}
 
+/** A transaction was blocked because the source account lacks sufficient funds. */
+export class InsufficientFundsError extends AstroidError {}
+
+/** Alias for {@link InsufficientFundsError} — matches the naming used in API docs and client middleware. */
+export const AstroidInsufficientFundsError = InsufficientFundsError;
+
+/** Alias for {@link PolicyViolationError} — matches the naming used in API docs and client middleware. */
+export const AstroidPolicyViolationError = PolicyViolationError;
+
 /** A transaction was blocked because it would exceed an available budget. */
 export class BudgetExceededError extends AstroidError {}
 
@@ -148,9 +157,13 @@ export function errorClassForCode(code: string): typeof AstroidError {
     case ApiErrorCode.CONFLICT:
       return ConflictError;
     case ApiErrorCode.POLICY_VIOLATION:
+    case ApiErrorCode.RISK_THRESHOLD_EXCEEDED:
       return PolicyViolationError;
     case ApiErrorCode.BUDGET_EXCEEDED:
       return BudgetExceededError;
+    case ApiErrorCode.INSUFFICIENT_FUNDS:
+    case ApiErrorCode.WALLET_FROZEN:
+      return InsufficientFundsError;
     case ApiErrorCode.APPROVAL_REQUIRED:
       return ApprovalRequiredError;
     case ApiErrorCode.RATE_LIMITED:
@@ -162,6 +175,10 @@ export function errorClassForCode(code: string): typeof AstroidError {
     case ApiErrorCode.SERVICE_UNAVAILABLE:
       return ServerError;
     default:
+      // Also support direct Horizon codes that may leak as API codes
+      if (code === 'op_underfunded' || code === 'op_low_reserve' || code === 'tx_insufficient_balance') {
+        return InsufficientFundsError;
+      }
       return AstroidError;
   }
 }
